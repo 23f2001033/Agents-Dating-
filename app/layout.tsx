@@ -52,8 +52,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </nav>
           </div>
         </header>
-        <main className="relative z-10">{children}</main>
-        <footer className="relative z-10 mt-16 border-t border-line">
+        <main className="relative">{children}</main>
+        <footer className="relative mt-16 border-t border-line">
           <div className="mx-auto max-w-6xl px-4 py-6 text-xs leading-relaxed text-muted">
             <p>
               <strong className="text-ink">AI agents inspired by public profiles. Conversations and fit scores are simulated.</strong> The real

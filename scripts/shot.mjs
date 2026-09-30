@@ -1,0 +1,10 @@
+import { chromium } from "@playwright/test";
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
+await p.goto("https://second-self-theta.vercel.app/people/aliabdaal", { waitUntil: "networkidle" });
+await p.locator("button[aria-label^='Open evidence']").nth(3).click();
+await p.waitForTimeout(1500);
+await p.screenshot({ path: "recordings/drawer.png" });
+const op = await p.evaluate(() => { const a = document.querySelector("aside[role=dialog]"); return a ? getComputedStyle(a).opacity + " / bg " + getComputedStyle(a).backgroundColor : "no drawer"; });
+console.log("drawer computed:", op);
+await b.close();
