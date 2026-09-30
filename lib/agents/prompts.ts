@@ -3,7 +3,7 @@ import type { AgentCard, PublicIntro, Claim } from "@/lib/analysis/profile";
 import { findGenderedPronoun, neutralizePronouns, sensitiveMatch } from "@/lib/analysis/profile";
 import { ACTIONS, ACTS, SCENARIO, type TurnSlot } from "./scenario";
 
-export const DATE_PROMPT_VERSION = "date-v1";
+export const DATE_PROMPT_VERSION = "date-v2";
 
 export type SavedTurn = {
   turnIndex: number;
@@ -176,6 +176,18 @@ export const DIMENSIONS = [
 ] as const;
 export type DimensionKey = (typeof DIMENSIONS)[number]["key"];
 
+// Source-alignment dimensions may be "unknown" (no basis in the sources); the two behavioural
+// dimensions are always ratable from the transcript, so "unknown" is not offered there.
+const behaviourDimSchema = {
+  type: "object",
+  properties: {
+    rating: { type: "string", enum: ["0", "1", "2", "3", "4"] },
+    rationale: { type: "string" },
+    refs: { type: "array", items: { type: "string" } },
+  },
+  required: ["rating", "rationale", "refs"],
+};
+
 const dimSchema = {
   type: "object",
   properties: {
@@ -191,8 +203,8 @@ export const assessorJsonSchema = {
   properties: {
     interest_alignment: dimSchema,
     priority_alignment: dimSchema,
-    reciprocity: dimSchema,
-    plan_negotiation: dimSchema,
+    reciprocity: behaviourDimSchema,
+    plan_negotiation: behaviourDimSchema,
     strongest_connection: { type: "string" },
     concern: { type: "string" },
     second_date: { type: "string", enum: ["yes", "maybe", "no"] },
@@ -229,6 +241,7 @@ export function validateAssessment(value: unknown, allowedRefs: Set<string>): As
     const d = r[key];
     const refs = [...new Set(d.refs.map((x) => x.trim().toUpperCase().replace(/^([SO])[-_ ]?C/, "$1-C")))].filter((x) => allowedRefs.has(x));
     const rationale = d.rationale.replace(/\s+/g, " ").trim().slice(0, 300);
+    if (/transcript (is|was) (empty|missing|not provided)|no transcript|empty transcript/i.test(rationale)) throw new Error("claimed the transcript is empty; it contains six turns T1-T6 — read them");
     const known = d.rating !== "unknown";
     // A known rating must carry a rationale and at least one valid reference; otherwise it becomes unknown.
     const supported = known && rationale.length >= 8 && refs.length > 0;
@@ -261,7 +274,8 @@ Rate four dimensions 0-4, or "unknown":
 - plan_negotiation: how ${other.firstName}'s agent actually handled the plan — proposing, clarifying, accepting or countering, and adapting after the complication (cite T# turn IDs).
 The transcript IS the evidence for reciprocity and plan_negotiation: rate them from the turns. They are only "unknown" if the other agent never responded.
 Rubric: 0 = explicit conflict or nonresponse; 1 = weak alignment or unresolved friction; 2 = mixed; 3 = clear alignment; 4 = strong, specific alignment.
-"unknown" is not a zero: use it ONLY when neither the sources nor the date give any basis. Divergent interests or conflicting priorities are a known LOW rating (1-2), never "unknown". Every known rating needs a short rationale and at least one reference.
+"unknown" (only offered for interest_alignment and priority_alignment) is not a zero: use it ONLY when the sources give no basis at all. Divergent interests or conflicting priorities are a known LOW rating (0-2), never "unknown". Every rating needs a short rationale and at least one reference; reciprocity and plan_negotiation must cite T# turn IDs.
+The transcript below always contains six turns (T1-T6); read all of them before rating.
 
 Keep source alignment (what the public profiles say) separate from simulated behaviour (what the agents did). The agents' words are hypothetical and are not new facts about the real people — but they are exactly what reciprocity and plan_negotiation measure.
 Use the whole 0-4 range. Be decisive and specific: a thoughtful, well-matched date deserves 3-4; a date where the agents talk past each other or the interests barely touch deserves 1-2.

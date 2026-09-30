@@ -63,6 +63,13 @@ with two workers sharing the run safely through leases.
 - Apify free-plan limits hit and handled: max 5 concurrent runs, max 10 LinkedIn profiles per run → batched seed collection in chunks.
 - Latency measured on Featherless: date turns ~6–14 s, assessments ~20–26 s, profile analysis ~40–55 s; transient empty responses under load are retried (≤3 attempts per call) and never produce fabricated scores.
 
+### Known limitations (measured by `scripts/audit.ts`)
+
+- Audit: 25 members, 300/300 dates, 1,800 turns, 600 assessments, 24 per person, no duplicate/self pairs, everyone opens 12 dates — PASS.
+- In the published demo, 195 of 600 assessments rated every dimension `unknown` (the assessor used "unknown" where its rationale described a mismatch), so those rows are listed as "score unknown" rather than ranked — never given a fabricated score. Fixed for new runs (`date-v2`): reciprocity and plan negotiation are always rated from the transcript, and a rationale that misreads the transcript is rejected and retried.
+- The demo profiles contain no explicit "need" claims (needs are shown as "Relationship needs are not stated"); the analyzer (`analyzer-v2`) now writes 2-3 labeled need hypotheses for new profiles.
+- Featherless meters concurrency (100 units; these models cost 4 per request): keep total in-flight requests ≤ 25.
+
 ## API
 
 `POST /api/people` · `GET /api/people/:id` · `POST /api/people/:id/advance|confirm|retry` · `POST /api/runs` · `GET /api/runs/:id` ·

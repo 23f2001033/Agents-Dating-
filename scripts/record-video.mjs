@@ -189,10 +189,10 @@ async function main() {
   if (which === "all" || which === "f") {
     await segment(browser, "06-rankings", async (page) => {
       await page.goto(BASE + "/rankings/amyporterfield", { waitUntil: "networkidle" });
-      await caption(page, "Every person gets a ranking of who fits them best: directional, reverse and mutual fit, with the reason and the concern (provisional until all 24 dates finish)");
+      await caption(page, "Every person gets a final ranking of all 24 candidates: directional, reverse and mutual fit, with the reason and the concern");
       await sleep(5500);
       await smoothScroll(page, 650, 30, 50);
-      await caption(page, "Deterministic arithmetic (no model writes the order); unfinished dates are listed, never scored; every row links to its transcript");
+      await caption(page, "Deterministic arithmetic (no model writes the order); every row links to the actual date that produced it");
       await sleep(4000);
       await smoothScroll(page, -650, 20, 30);
       await page.selectOption("select", { label: "Mel Robbins" });

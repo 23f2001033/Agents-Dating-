@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { EvidenceDraft } from "@/lib/sources/normalize";
 
-export const ANALYZER_PROMPT_VERSION = "analyzer-v1";
+export const ANALYZER_PROMPT_VERSION = "analyzer-v2";
 
 export const CLAIM_CATEGORIES = ["interest", "hobby", "priority", "lifestyle", "need", "communication", "background"] as const;
 export type ClaimCategory = (typeof CLAIM_CATEGORIES)[number];
@@ -236,11 +236,11 @@ RULES
    - "observed" = explicitly stated by the person, or shown repeatedly in their own words (e.g. several captions about climbing).
    - "tentative" = an interpretation or simulation preference beyond what is literally stated. Phrase it as a hypothesis ("may enjoy…", "seems to value…").
 3. Use BOTH sources. LinkedIn usually shows work, skills, causes and stated values; Instagram usually shows hobbies, daily life, places and tone. Capture what each adds, and say where they agree or differ.
-4. Needs: a need is "observed" only when the person explicitly says what they need, want or value. Relationship needs are almost never stated: if they are not, set needs_stated=false and write needs_note plainly (e.g. "Relationship needs are not stated in either source."). You may add 1-3 tentative needs, clearly phrased as hypotheses and grounded in cited evidence.
+4. Needs (always write 2-3 claims with category "need"): a need is "observed" only when the person explicitly says what they need, want or can't do without (e.g. "I need mornings to write"). Relationship needs are almost never stated: then set needs_stated=false, write needs_note plainly (e.g. "Relationship needs are not stated in either source.") and write the needs as "tentative" hypotheses about what this person would likely need from a date or partner, phrased "May need…" / "Would likely value…", each grounded in cited evidence (e.g. "May need a partner comfortable with a heavy travel schedule" citing travel captions).
 5. A job title alone does not establish ambition, wealth, free time or emotional availability. Follower counts, fame and popularity are irrelevant.
 6. Never state or infer gender, pronouns, sexual orientation, relationship status, marriage, partners, children, pregnancy, dating history, ethnicity, religion, health conditions, diagnoses, attractiveness, age or income — even if a caption mentions them, leave that out. Refer to the person by first name or "they/them" only.
 7. Be specific, never generic: "Sunday long runs by the river, then filter coffee (3 captions)" beats "likes fitness". Prefer concrete activities, recurring themes, projects, causes, and city-level places.
-8. Write 10-16 claims: interests 3-5, hobbies 2-4 (things done for enjoyment, not work), priorities/values 2-3, lifestyle 1-3 (rhythm, travel, routines), communication style 1-2 (how they write: humor, directness, warmth), background 1-2, needs 0-3. Each claim at most 25 words.
+8. Write 10-16 claims: interests 3-5, hobbies 2-4 (things done for enjoyment, not work), priorities/values 2-3, lifestyle 1-3 (rhythm, travel, routines), communication style 1-2 (how they write: humor, directness, warmth), background 1-2, needs 2-3. Each claim at most 25 words.
 9. conversation_starters: exactly 3 specific questions another person's agent could ask, grounded in evidence. Avoid heritage, ethnic, religious or political affiliations as topics.
 10. unknowns: 3-6 important things a date would want to know that the sources do NOT answer, each with why it matters.
 11. date_ideas: 2-4 tentative first-date activities this person's agent could suggest, grounded in evidence (these are simulation preferences, not facts).
