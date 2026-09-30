@@ -6,6 +6,7 @@ import { getOrCreateSession } from "@/lib/session";
 import { publishedPersonIds } from "@/lib/access";
 import { config } from "@/lib/config";
 import { normalizeInstagram, normalizeLinkedIn } from "@/lib/sources/urls";
+import { RECHECKABLE, recheckPerson } from "@/lib/jobs/person";
 
 export const dynamic = "force-dynamic";
 
@@ -47,5 +48,11 @@ export async function POST(req: Request) {
   if (!res.ok) return NextResponse.json({ error: res.error, field: res.field }, { status: 400 });
   const demoMember = (await publishedPersonIds()).has(res.personId);
   await db.insert(schema.sessionPeople).values({ sessionId: session.id, personId: res.personId }).onConflictDoNothing();
-  return NextResponse.json({ personId: res.personId, slug: res.slug, existing: res.existing, demoMember }, { status: 202 });
+  // Resubmitting a pair that was blocked or failed (e.g. the Instagram was private and is now public)
+  // re-collects the blocking source instead of returning the stale result.
+  let recheck: { ok: boolean; error?: string } | null = null;
+  if (existing && existing.origin === "visitor" && RECHECKABLE.has(existing.status)) {
+    recheck = await recheckPerson(existing.id);
+  }
+  return NextResponse.json({ personId: res.personId, slug: res.slug, existing: res.existing, demoMember, recheck }, { status: 202 });
 }

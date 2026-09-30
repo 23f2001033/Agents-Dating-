@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
-import { canViewPerson } from "@/lib/access";
+import { canDrivePerson, canViewPerson } from "@/lib/access";
 import { getSession } from "@/lib/session";
 import { latestSnapshots } from "@/lib/jobs/person";
 
@@ -11,7 +11,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/.test(id)) return NextResponse.json({ error: "not found" }, { status: 404 });
   const [p] = await db.select().from(schema.people).where(eq(schema.people.id, id));
-  if (!p || !(await canViewPerson(p, await getSession()))) return NextResponse.json({ error: "not found" }, { status: 404 });
+  const session = await getSession();
+  if (!p || !(await canViewPerson(p, session))) return NextResponse.json({ error: "not found" }, { status: 404 });
+  const canDrive = await canDrivePerson(p, session);
   const snaps = await latestSnapshots(id);
   const events = await db.select().from(schema.events).where(eq(schema.events.personId, id)).orderBy(desc(schema.events.id)).limit(12);
   const src = (s: typeof snaps.linkedin) => (s ? { status: s.status, coverage: s.coverage, error: s.error, fetchedAt: s.fetchedAt } : { status: "queued", coverage: null, error: null, fetchedAt: null });
@@ -28,6 +30,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       sources: { linkedin: src(snaps.linkedin), instagram: src(snaps.instagram) },
       identity: identity ? { status: identity.status, nameMatch: identity.nameMatch, signals: identity.signals?.map((s) => s.detail) ?? [] } : null,
       ready: p.status === "ready" && Boolean(p.currentProfileId),
+      canDrive,
       events: events.map((e) => ({ type: e.type, at: e.createdAt, payload: e.payload })),
     },
     { headers: { "cache-control": "no-store" } },

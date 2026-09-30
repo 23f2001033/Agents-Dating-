@@ -14,6 +14,7 @@ type State = {
   sources: { linkedin: Src; instagram: Src };
   identity: { status?: string; signals: string[] } | null;
   ready: boolean;
+  canDrive: boolean;
 };
 
 const TERMINAL = ["ready", "blocked_private", "blocked_identity", "insufficient_data", "failed"];
@@ -39,6 +40,8 @@ export function TryProgress({ personId }: { personId: string }) {
   const router = useRouter();
   const [s, setS] = useState<State | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const driving = useRef(false);
 
   const poll = useCallback(async () => {
@@ -93,6 +96,20 @@ export function TryProgress({ personId }: { personId: string }) {
     await poll();
     drive();
   }
+  // Re-collect the source that blocked this profile (e.g. the Instagram has been made public since).
+  async function recheck() {
+    setBusy(true);
+    setActionMsg(null);
+    try {
+      const r = await fetch(`/api/people/${personId}/recheck`, { method: "POST" });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) setActionMsg(j.error ?? "Could not re-check right now.");
+      await poll();
+      if (r.ok) drive();
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="rounded-2xl border border-line bg-paper p-5">
@@ -113,9 +130,15 @@ export function TryProgress({ personId }: { personId: string }) {
         <Row
           label="Checks — public account and same person"
           state={verifyState}
-          detail={s.identity ? `Identity evidence: ${s.identity.status}${s.identity.signals.length ? ` — ${s.identity.signals.slice(0, 3).join("; ")}` : ""}` : "Public-state and identity checks run after both sources arrive."}
+          detail={
+            s.status === "blocked_private"
+              ? "Instagram reports this account as private, so it cannot be used."
+              : s.identity
+                ? `Identity evidence: ${s.identity.status}${s.identity.signals.length ? ` — ${s.identity.signals.slice(0, 3).join("; ")}` : ""}`
+                : "Public-state and identity checks run after both sources arrive."
+          }
         />
-        <Row label="Analysis — evidence-cited profile and agent card" state={s.status === "analyzing" ? "doing" : s.status === "ready" ? "done" : "todo"} detail={s.detail ?? "The analyst may only cite excerpts that exist in the evidence store."} />
+        <Row label="Analysis — evidence-cited profile and agent card" state={s.status === "analyzing" ? "doing" : s.status === "ready" ? "done" : "todo"} detail={(["analyzing", "ready"].includes(s.status) && s.detail) || "The analyst may only cite excerpts that exist in the evidence store."} />
       </ol>
 
       {s.status === "blocked_identity" && (
@@ -123,9 +146,11 @@ export function TryProgress({ personId }: { personId: string }) {
           <p className="font-semibold text-terra">We could not establish that these accounts belong to the same person.</p>
           <p className="mt-1">Neither account links to the other, and we found fewer than two consistent self-described details. If both are yours, you can confirm — the profile will be labeled “Submitter-confirmed”, not verified.</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button onClick={confirm} className="rounded-full bg-green px-4 py-2 font-medium text-white">
-              Both accounts are mine — continue
-            </button>
+            {s.canDrive && (
+              <button onClick={confirm} className="rounded-full bg-green px-4 py-2 font-medium text-white">
+                Both accounts are mine — continue
+              </button>
+            )}
             <Link href="/#try" className="rounded-full border border-line bg-paper px-4 py-2">
               Use different links
             </Link>
@@ -133,17 +158,44 @@ export function TryProgress({ personId }: { personId: string }) {
         </div>
       )}
       {s.status === "blocked_private" && (
-        <div className="mt-4 rounded-lg bg-terra-soft p-4 text-sm text-terra">
-          {s.detail} <Link href="/#try" className="underline">Try a public account</Link>.
+        <div className="mt-4 rounded-lg bg-terra-soft p-4 text-sm">
+          <p className="text-terra">{s.detail}</p>
+          <p className="mt-1">Switched the account to public? Check again — we collect only Instagram again and keep the LinkedIn result.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {s.canDrive && (
+              <button onClick={recheck} disabled={busy} className="rounded-full bg-green px-4 py-2 font-medium text-white disabled:opacity-60">
+                {busy ? "Checking…" : "I've made it public — check again"}
+              </button>
+            )}
+            <Link href="/#try" className="rounded-full border border-line bg-paper px-4 py-2">
+              Use different links
+            </Link>
+          </div>
         </div>
       )}
-      {s.status === "insufficient_data" && <div className="mt-4 rounded-lg bg-terra-soft p-4 text-sm text-terra">{s.detail}</div>}
+      {s.status === "insufficient_data" && (
+        <div className="mt-4 rounded-lg bg-terra-soft p-4 text-sm">
+          <p className="text-terra">{s.detail}</p>
+          {s.canDrive && (
+            <button onClick={recheck} disabled={busy} className="mt-2 rounded-full bg-green px-4 py-2 font-medium text-white disabled:opacity-60">
+              {busy ? "Checking…" : "Collect both accounts again"}
+            </button>
+          )}
+        </div>
+      )}
+      {actionMsg && (
+        <p role="alert" className="mt-3 rounded-lg bg-terra-soft px-3 py-2 text-sm text-terra">
+          {actionMsg}
+        </p>
+      )}
       {s.status === "failed" && (
         <div className="mt-4 rounded-lg bg-terra-soft p-4 text-sm">
           <p className="text-terra">{s.detail}</p>
-          <button onClick={retry} className="mt-2 rounded-full bg-green px-4 py-2 font-medium text-white">
-            Retry the failed step
-          </button>
+          {s.canDrive && (
+            <button onClick={retry} className="mt-2 rounded-full bg-green px-4 py-2 font-medium text-white">
+              Retry the failed step
+            </button>
+          )}
         </div>
       )}
       <p className="mt-4 text-xs text-muted">Keep this page open — work runs in short saved steps, so reloading or coming back later resumes where it stopped.</p>

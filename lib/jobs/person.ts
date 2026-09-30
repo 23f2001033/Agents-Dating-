@@ -323,6 +323,40 @@ export async function retryPerson(personId: string) {
   await logEvent({ personId, type: "manual_retry", payload: { restarted: failed.map((s) => s.platform) } });
 }
 
+// Re-check a blocked or failed person with fresh source collection, e.g. after the owner made their
+// Instagram public. Only the sources that caused the block are collected again; everything else is kept.
+export const RECHECKABLE = new Set(["blocked_private", "failed", "insufficient_data"]);
+const RECHECK_COOLDOWN_MS = 20_000;
+const RECHECKS_PER_HOUR = 5;
+
+export async function recheckPerson(personId: string): Promise<{ ok: true; restarted: string[] } | { ok: false; error: string }> {
+  const [p] = await db.select().from(schema.people).where(eq(schema.people.id, personId));
+  if (!p) return { ok: false, error: "Not found." };
+  if (!RECHECKABLE.has(p.status)) return { ok: false, error: "Nothing to re-check for this profile." };
+  const snaps = await latestSnapshots(personId);
+  const platforms: ("linkedin" | "instagram")[] =
+    p.status === "blocked_private"
+      ? ["instagram"]
+      : p.status === "insufficient_data"
+        ? ["linkedin", "instagram"]
+        : (["linkedin", "instagram"] as const).filter((k) => !snaps[k] || snaps[k]!.status === "failed");
+  if (!platforms.length) platforms.push("linkedin", "instagram");
+
+  // Guard paid provider calls: a short cooldown against double-clicks and an hourly cap per person.
+  const newest = Math.max(0, ...platforms.map((k) => snaps[k]?.createdAt.getTime() ?? 0));
+  if (Date.now() - newest < RECHECK_COOLDOWN_MS) return { ok: false, error: "Please wait a few seconds before checking again." };
+  const [{ n }] = await db
+    .select({ n: dsql<number>`count(*)::int` })
+    .from(schema.events)
+    .where(and(eq(schema.events.personId, personId), eq(schema.events.type, "recheck_requested"), dsql`${schema.events.createdAt} > now() - interval '1 hour'`));
+  if (Number(n) >= RECHECKS_PER_HOUR) return { ok: false, error: "Too many re-checks for this profile in the last hour. Please try again later." };
+
+  await db.insert(schema.sourceSnapshots).values(platforms.map((platform) => ({ personId, platform, provider: platform === "linkedin" ? LI_PROVIDER() : IG_PROVIDER() })));
+  await setStatus(personId, "collecting", null, { publicState: null, leaseUntil: null });
+  await logEvent({ personId, type: "recheck_requested", payload: { platforms, previous: p.status } });
+  return { ok: true, restarted: platforms };
+}
+
 export async function unfinishedPeople(ids?: string[]) {
   const rows = await db
     .select({ id: schema.people.id, status: schema.people.status })
