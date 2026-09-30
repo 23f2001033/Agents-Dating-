@@ -9,7 +9,7 @@ export function initials(name: string) {
     .join("");
 }
 
-const PALETTE = ["#315C47", "#A94735", "#8A6A1F", "#3F5E7A", "#6B4E71", "#5E6B3A"];
+const PALETTE = ["#C2185B", "#7B1FA2", "#AD1457", "#6A1B9A", "#D81B60", "#8E24AA"];
 export function Avatar({ name, size = 44 }: { name: string; size?: number }) {
   const idx = [...name].reduce((a, c) => a + c.charCodeAt(0), 0) % PALETTE.length;
   return (

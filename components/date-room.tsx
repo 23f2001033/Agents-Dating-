@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { EvidenceChips, EvidenceProvider, type Ev } from "@/components/evidence";
+import { HeartBurst } from "@/components/hearts";
 
 export type RoomSide = {
   key: "a" | "b";
@@ -229,7 +230,7 @@ export function DateRoom({ initial, live }: { initial: RoomData; live: boolean }
                 return (
                   <li key={t.turnIndex} className={`fade-in flex gap-3 ${right ? "flex-row-reverse text-right" : ""}`}>
                     <Initials name={s.name} tone={t.actor} />
-                    <div className={`max-w-[88%] rounded-2xl border p-3.5 ${right ? "border-[#ecd3cc] bg-[#fbf1ee]" : "border-[#cfe0d6] bg-[#f1f7f3]"}`}>
+                    <div className={`max-w-[88%] rounded-2xl border p-3.5 ${right ? "border-[#dcc7ea] bg-[#f7f0fc]" : "border-[#f5c2d3] bg-[#fff0f5]"}`}>
                       <p className={`flex flex-wrap items-center gap-2 text-xs text-muted ${right ? "justify-end" : ""}`}>
                         <span className="font-semibold text-ink">{s.firstName}&apos;s agent</span>
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${ACTION_STYLE[t.action] ?? "bg-line"}`}>{t.action}</span>
@@ -257,8 +258,8 @@ export function DateRoom({ initial, live }: { initial: RoomData; live: boolean }
               {data.status === "failed" && <li className="rounded-lg bg-terra-soft p-3 text-sm text-terra">This date failed after retries: {data.error}. No score was fabricated.</li>}
             </ol>
 
-            <div className="mt-4 rounded-2xl border border-dashed border-gold/50 bg-[#fbf7ea] p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-gold">Proposed plan</p>
+            <div className="mt-4 rounded-2xl border border-dashed border-green/40 bg-[#fff5f8] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-green">♥ Proposed plan</p>
               {plan ? (
                 <div key={plan.turnIndex} className="fade-in">
                   <p className="font-display mt-1 text-lg font-semibold">{plan.planTitle}</p>
@@ -274,6 +275,7 @@ export function DateRoom({ initial, live }: { initial: RoomData; live: boolean }
           </section>
         </div>
 
+        <HeartBurst fire={showVerdicts && data.assessments.some((x) => x.secondDate === "yes")} />
         {showVerdicts && (
           <div className="fade-in mt-8 grid gap-5 md:grid-cols-2">
             {(["a", "b"] as const).map((k) => {

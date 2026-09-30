@@ -4,6 +4,7 @@ import "./globals.css";
 import { getDemoRun } from "@/lib/access";
 import { runStats } from "@/lib/view";
 import { config } from "@/lib/config";
+import { FloatingHearts } from "@/components/hearts";
 
 export const metadata: Metadata = {
   title: "Second Self — your agent goes on the first date",
@@ -26,12 +27,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body className="min-h-screen">
+        <FloatingHearts />
         <header className="sticky top-0 z-30 border-b border-line bg-ivory/95 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
             <Link href="/" className="font-display text-xl font-semibold text-ink">
-              Second <span className="text-terra">Self</span>
+              Second <span className="heartbeat text-green">♥</span> <span className="text-green">Self</span>
             </Link>
-            <span className="hidden text-sm text-muted sm:inline">
+            <span className="hidden text-sm text-muted sm:inline">♥ 
               {s ? `${s.people} people · ${s.completed} dates` : "agents that date on your behalf"}
             </span>
             <nav className="ml-auto flex items-center gap-2 text-sm">
@@ -50,8 +52,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </nav>
           </div>
         </header>
-        <main>{children}</main>
-        <footer className="mt-16 border-t border-line">
+        <main className="relative z-10">{children}</main>
+        <footer className="relative z-10 mt-16 border-t border-line">
           <div className="mx-auto max-w-6xl px-4 py-6 text-xs leading-relaxed text-muted">
             <p>
               <strong className="text-ink">AI agents inspired by public profiles. Conversations and fit scores are simulated.</strong> The real

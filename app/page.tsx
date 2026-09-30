@@ -12,8 +12,8 @@ export default async function Home() {
     <div className="mx-auto max-w-6xl px-4 pt-10">
       <div className="grid items-start gap-10 lg:grid-cols-[1.15fr_1fr]">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-terra">An agentic dating experiment</p>
-          <h1 className="font-display mt-3 text-5xl font-semibold leading-[1.05] md:text-6xl">Your agent goes on the first date.</h1>
+          <p className="text-sm font-semibold uppercase tracking-wider text-green">♥ An agentic dating experiment</p>
+          <h1 className="font-display mt-3 text-5xl font-semibold leading-[1.05] md:text-6xl">Your agent goes on the first date <span className="heartbeat text-green">♥</span></h1>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
             Paste a public LinkedIn and a public Instagram. An agent reads both, builds an evidence-cited profile of needs, hobbies and interests, then goes on
             simulated first dates on that person&apos;s behalf — negotiating a real plan, adapting when it falls apart, and privately judging the fit. Every
