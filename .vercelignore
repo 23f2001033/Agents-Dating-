@@ -1,0 +1,7 @@
+.env
+.env.*
+private/
+recordings/
+node_modules/
+.next/
+*.log
