@@ -7,8 +7,9 @@ import * as schema from "./schema";
 const globalForDb = globalThis as unknown as { __ssSql?: postgres.Sql };
 
 function makeClient() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set");
+  // postgres.js connects lazily (on first query), so a missing URL only fails when a query runs —
+  // never during `next build`, which imports modules but renders no dynamic page.
+  const url = process.env.DATABASE_URL ?? "postgres://missing-database-url@127.0.0.1:1/unset";
   return postgres(url, {
     prepare: false,
     max: Number(process.env.DB_POOL_MAX ?? 5),
