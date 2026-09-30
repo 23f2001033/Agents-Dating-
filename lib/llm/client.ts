@@ -199,6 +199,12 @@ export async function generateJson<T>(opts: GenerateOptions<T>): Promise<Generat
     const model = String(json?.model ?? opts.model);
     const text = choice?.message?.content ?? "";
     attempts++;
+    if (!text && !choice?.finish_reason) {
+      lastError = "stream ended without output (provider dropped the connection)";
+      await opts.onUsage?.({ kind: opts.kind, refId: opts.refId, model, latencyMs, attempt: attempts, ok: false, error: lastError });
+      await sleep(1500 * 2 ** attempts + Math.random() * 1000);
+      continue;
+    }
     try {
       if (choice?.message?.refusal) throw new Error(`refusal: ${choice.message.refusal.slice(0, 100)}`);
       if (choice?.finish_reason && choice.finish_reason !== "stop") throw new Error(`finish_reason ${choice.finish_reason}`);

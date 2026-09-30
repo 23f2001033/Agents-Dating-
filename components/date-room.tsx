@@ -85,7 +85,7 @@ function Initials({ name, tone }: { name: string; tone: "a" | "b" }) {
   );
 }
 
-export function DateRoom({ initial, live }: { initial: RoomData; live: boolean }) {
+export function DateRoom({ initial, live, driveRunId = null }: { initial: RoomData; live: boolean; driveRunId?: string | null }) {
   const [data, setData] = useState<RoomData>(initial);
   const finished = data.status === "completed";
   const [shown, setShown] = useState<number>(live || !finished ? initial.turns.length : initial.turns.length);
@@ -104,6 +104,22 @@ export function DateRoom({ initial, live }: { initial: RoomData; live: boolean }
     }, 2000);
     return () => clearInterval(t);
   }, [live, finished, data.dateId]);
+
+  // The run's owner watching a live date keeps the run advancing (short persisted server ticks).
+  useEffect(() => {
+    if (!live || finished || !driveRunId) return;
+    let stop = false;
+    (async () => {
+      for (let i = 0; i < 12 && !stop; i++) {
+        const r = await fetch(`/api/runs/${driveRunId}/advance`, { method: "POST" }).catch(() => null);
+        const j = r ? await r.json().catch(() => ({})) : {};
+        if (!r?.ok || j.status === "completed" || j.status === "partial") break;
+      }
+    })();
+    return () => {
+      stop = true;
+    };
+  }, [live, finished, driveRunId]);
 
   // Replay: reveal saved turns one by one (no fake typing, no new inference).
   useEffect(() => {

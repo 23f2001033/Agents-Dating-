@@ -13,5 +13,6 @@ export default async function DatePage({ params }: { params: Promise<{ id: strin
   const session = await getSession();
   if (!r.runPublished && (!session || r.ownerSessionId !== session.id)) notFound();
   const live = r.data.status !== "completed" && r.data.status !== "failed";
-  return <DateRoom initial={r.data} live={live} />;
+  const canDrive = !r.runPublished && Boolean(session && r.ownerSessionId === session.id);
+  return <DateRoom initial={r.data} live={live} driveRunId={canDrive ? r.runId : null} />;
 }
